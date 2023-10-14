@@ -25,6 +25,8 @@ Actions:
         ReportNamePrefix: amplify-rpt
     Configuration:
       Steps:
+        - Run: pwd
+        - Run: ls -lart
         - Run: npm install -g @aws-amplify/cli
         - Run: npm install
         - Run: set -e

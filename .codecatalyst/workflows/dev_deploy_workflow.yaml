@@ -40,6 +40,6 @@ Actions:
       Type: Lambda
     Environment:
       Connections:
-        - Role: AWSRoleForCodeCatalystSupport
+        - Role: CodeCatalystWorkflowDevelopmentRole-cdktest
           Name: "BlogAccount"
       Name: Dev

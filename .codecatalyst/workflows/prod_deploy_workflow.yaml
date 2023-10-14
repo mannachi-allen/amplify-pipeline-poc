@@ -42,5 +42,5 @@ Actions:
     Environment:
       Connections:
         - Role: CodeCatalystPreviewDevelopmentAdministrator-pm6byj
-          Name: '029839700785'
+          Name: 'BlogAccount'
       Name: Dev

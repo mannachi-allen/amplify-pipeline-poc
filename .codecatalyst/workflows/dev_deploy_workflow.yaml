@@ -40,6 +40,6 @@ Actions:
       Type: Lambda
     Environment:
       Connections:
-        - Role: CodeCatalystPreviewDevelopmentAdministrator-pm6byj
+        - Role: AWSRoleForCodeCatalystSupport
           Name: "BlogAccount"
       Name: Dev

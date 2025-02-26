@@ -39,7 +39,7 @@ Actions:
         - Run: FRONTEND="{\"frontend\":\"javascript\",\"framework\":\"react\",\"config\":$REACTCONFIG}"
         - Run: PROVIDERS="{\"awscloudformation\":$AWSCLOUDFORMATIONCONFIG}"
         - Run: amplify init --amplify $AMPLIFY --frontend $FRONTEND --providers $PROVIDERS --yes
-        - Run: amplify push --appId amplifypipelinepoc --allow-destructive-graphql-schema-updates --yes
+        - Run: amplify push --appId d1x5b5mzb2s1wj --allow-destructive-graphql-schema-updates --yes
     Compute:
       Type: Lambda
     Environment:

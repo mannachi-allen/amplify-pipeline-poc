@@ -1,49 +1,97 @@
-Name: dev_deploy_workflow
-SchemaVersion: '1.0'
+Name: AmplifyDeployWorkflow
+SchemaVersion: "1.0"
 
+# Trigger on push to main branch
 Triggers:
   - Type: Push
     Branches:
-      - dev
+      - main
 
 Actions:
-  Build_Dev:
-    Identifier: aws/build@v1.0.0
+  Install_And_Configure:
+    Identifier: aws/build@v1
     Inputs:
       Sources:
         - WorkflowSource
-      Variables:
-        - Name: AWS_ACCESS_KEY
-          Value: ${Secrets.AWS_ACCESS_KEY}
-        - Name: AWS_SECRET_KEY
-          Value: ${Secrets.AWS_SECRET_KEY}
-        - Name: AMPLIFY_ENV
-          Value: dev
-    Outputs:
-      AutoDiscoverReports:
-        Enabled: true
-        ReportNamePrefix: amplify-rpt
+    Compute:
+      Type: EC2
     Configuration:
       Steps:
-        - Run: pwd
-        - Run: ls -lart
-        - Run: npm install -g @aws-amplify/cli
-        - Run: npm install
-        - Run: amplify --version
-        - Run: set -e
-        - Run: IFS='|'
-        - Run: REACTCONFIG="{\"SourceDir\":\"src\",\"DistributionDir\":\"build\",\"BuildCommand\":\"npm run-script build\",\"StartCommand\":\"npm run-script start\"}"
-        - Run: echo $REACTCONFIG
-        - Run: AWSCLOUDFORMATIONCONFIG="{\"configLevel\":\"project\",\"useProfile\":false,\"profileName\":\"default\",\"accessKeyId\":\"$AWS_ACCESS_KEY\",\"secretAccessKey\":\"$AWS_SECRET_KEY\",\"region\":\"us-west-2\"}"
-        - Run: AMPLIFY="{\"projectName\":\"amplifypipelinepoc\",\"envName\":\"$AMPLIFY_ENV\",\"defaultEditor\":\"code\"}"
-        - Run: FRONTEND="{\"frontend\":\"javascript\",\"framework\":\"react\",\"config\":$REACTCONFIG}"
-        - Run: PROVIDERS="{\"awscloudformation\":$AWSCLOUDFORMATIONCONFIG}"
-        - Run: amplify init --amplify $AMPLIFY --frontend $FRONTEND --providers $PROVIDERS --yes
-        - Run: amplify push --appId d1x5b5mzb2s1wj --allow-destructive-graphql-schema-updates --yes
-    Compute:
-      Type: Lambda
+        # Install dependencies
+        - Run: |
+            npm install -g @aws-amplify/cli
+            npm install
+        
+        # Configure Amplify CLI with environment variables
+        - Run: |
+            export FRONTEND_CONFIG='{
+              "frontend": "javascript",
+              "framework": "react",
+              "config": {
+                "SourceDir": "src",
+                "DistributionDir": "build",
+                "BuildCommand": "npm run build",
+                "StartCommand": "npm start"
+              }
+            }'
+            export PROVIDER_CONFIG='{
+              "awscloudformation": {
+                "configLevel": "project",
+                "useProfile": false
+              }
+            }'
+            
+        # Initialize Amplify
+        - Run: |
+            amplify init \
+            --app $AMPLIFY_APP_ID \
+            --frontend "$FRONTEND_CONFIG" \
+            --provider "$PROVIDER_CONFIG" \
+            --yes
+
+  Build_And_Deploy:
+    Identifier: aws/build@v1
+    DependsOn:
+      - Install_And_Configure
+    Inputs:
+      Sources:
+        - WorkflowSource
     Environment:
       Connections:
         - Role: CodeCatalystWorkflowDevelopmentRole-cdktest
-          Name: "BlogAccount"
+          Name: "Dev"
+      Name: Dev 
+    Compute:
+      Type: EC2
+    Configuration:
+      Steps:
+        # Build the application
+        - Run: npm run build
+        
+        # Push to Amplify
+        - Run: amplify push --yes
+    Outputs:
+      Artifacts:
+        - Name : build
+          Files : 
+            - ./build
+
+  DeployToAmplify:
+    Identifier: codecatalyst-labs/deploy-to-amplify-hosting@v1
+    DependsOn:
+      - Build_And_Deploy
+    Inputs:
+      Artifacts:
+        - build
+    Configuration:
+      Wait: true
+      AWSRegion: us-east-1
+      AppStackName: ${PROJECT_NAME}
+      CreateBranch: true
+      AmplifyBranchName: ${WorkflowSource.BranchName}
+      Path: build
+    Environment:
+      Connections:
+        - Role: CodeCatalystWorkflowDevelopmentRole-cdktest
+          Name: "Dev"
       Name: Dev
